@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Signal & Market Analysis Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Kantumruy Pro for Khmer) -->
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Kantumruy Pro', 'sans-serif'],
+                    },
+                    colors: {
+                        darkBg: '#0f172a',
+                        cardBg: '#1e293b',
+                        accentBlue: '#3b82f6',
+                        accentGreen: '#22c55e',
+                        accentRed: '#ef4444',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Kantumruy Pro', sans-serif;
+            background-color: #0b0f19;
+            color: #f8fafc;
+        }
+        .glow-green {
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);
+        }
+        .glow-red {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+
+    <!-- Header / Navbar -->
+    <header class="bg-cardBg/80 backdrop-blur border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-blue-600/20 text-blue-500 rounded-xl border border-blue-500/30">
+                    <i class="fa-solid fa-chart-line text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-white tracking-wide">PRO TRADING SIGNALS</h1>
+                    <p class="text-xs text-slate-400">ប្រព័ន្ធវិភាគទីផ្សារ និងផ្តល់ Signal ស្វ័យប្រវត្តិ</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Market Live
+                </span>
+                <button onclick="refreshSignals()" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg border border-slate-700 transition duration-200 flex items-center gap-2">
+                    <i class="fa-solid fa-rotate" id="refreshIcon"></i> ធ្វើបច្ចុប្បន្នភាព
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 mt-8 space-y-8">
+
+        <!-- Asset Filter & Market Overview -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-cardBg/50 p-4 rounded-2xl border border-slate-800">
+            <div class="flex flex-wrap gap-2" id="filterTabs">
+                <button onclick="filterSignals('ALL')" class="tab-btn px-4 py-2 rounded-xl text-sm font-semibold transition bg-blue-600 text-white shadow-lg shadow-blue-600/30" data-category="ALL">ទាំងអស់ (All)</button>
+                <button onclick="filterSignals('METALS')" class="tab-btn px-4 py-2 rounded-xl text-sm font-semibold transition bg-slate-800 text-slate-400 hover:bg-slate-700" data-category="METALS">មាស (Metals)</button>
+                <button onclick="filterSignals('CRYPTO')" class="tab-btn px-4 py-2 rounded-xl text-sm font-semibold transition bg-slate-800 text-slate-400 hover:bg-slate-700" data-category="CRYPTO">Crypto</button>
+                <button onclick="filterSignals('FOREX')" class="tab-btn px-4 py-2 rounded-xl text-sm font-semibold transition bg-slate-800 text-slate-400 hover:bg-slate-700" data-category="FOREX">Forex</button>
+            </div>
+            <div class="text-xs text-slate-400 flex items-center gap-2">
+                <i class="fa-regular fa-clock text-blue-400"></i> បច្ចុប្បន្នភាពចុងក្រោយ៖ <span id="lastUpdatedTime" class="text-slate-200 font-medium">--:--:--</span>
+            </div>
+        </div>
+
+        <!-- Risk & Lot Calculator Banner -->
+        <section class="bg-gradient-to-r from-slate-900 via-cardBg to-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-calculator text-blue-400"></i> ឧបករណ៍គណនាហានិភ័យ & Lot Size (Risk Management Calculator)
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+                    <label class="text-xs text-slate-400 mb-1 block">ទុនដើម (Account Equity $)</label>
+                    <input type="number" id="calcCapital" value="1000" oninput="calculateLot()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 font-medium text-sm">
+                </div>
+                <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+                    <label class="text-xs text-slate-400 mb-1 block">ហានិភ័យ (%) ក្នុង 1 Trade</label>
+                    <input type="number" id="calcRisk" value="1" step="0.5" max="5" min="0.5" oninput="calculateLot()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 font-medium text-sm">
+                </div>
+                <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+                    <label class="text-xs text-slate-400 mb-1 block">ប្រាក់ដែលហ៊ានប្រឈម ($)</label>
+                    <div id="riskAmountDisplay" class="text-lg font-bold text-amber-400 mt-1">$10.00</div>
+                </div>
+                <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 bg-blue-950/30">
+                    <label class="text-xs text-blue-300 mb-1 block">Lot Size ដែលសុវត្ថិភាព (XAU/USD)</label>
+                    <div id="safeLotDisplay" class="text-xl font-black text-emerald-400 mt-1">0.01 Lot</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Signals Grid Section -->
+        <section>
+            <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                <i class="fa-solid fa-bullhorn text-amber-400"></i> Signal សកម្មបច្ចុប្បន្ន (Active Signals)
+            </h2>
+
+            <div id="signalsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Signals will be populated dynamically by JavaScript -->
+            </div>
+        </section>
+
+        <!-- Disclaimer -->
+        <footer class="mt-12 text-center text-xs text-slate-500 border-t border-slate-800 pt-6">
+            <p class="mb-2">⚠️️ **ការរំលឹកពីហានិភ័យ (Risk Warning):** ការជួញដូររូបិយប័ណ្ណ, មាស និង Crypto មានហានិភ័យខ្ពស់។ Signal ទាំងអស់នេះគឺសម្រាប់ជាព័ត៌មាន និងការសិក្សាប៉ុណ្ណោះ។</p>
+            <p>© 2026 Pro Trading Dashboard. All Rights Reserved.</p>
+        </footer>
+
+    </main>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Sample Signal Data
+        const signalsData = [
+            {
+                id: 1,
+                pair: "XAU/USD",
+                category: "METALS",
+                type: "BUY LIMIT",
+                isBuy: true,
+                timeframe: "H1 / H4",
+                entry: "2,635.00",
+                sl: "2,625.00",
+                tp1: "2,650.00",
+                tp2: "2,665.00",
+                tp3: "2,680.00",
+                rrr: "1:3.0",
+                winrate: "82%",
+                status: "Active Zone",
+                analysis: "តម្លៃបានចុះមកដល់តំបន់ Key Support (2,630 - 2,635) រួមជាមួយ Bullish Divergence លើ RSI (14)។"
+            },
+            {
+                id: 2,
+                pair: "BTC/USDT",
+                category: "CRYPTO",
+                type: "BUY NOW",
+                isBuy: true,
+                timeframe: "H4 / Daily",
+                entry: "64,200.00",
+                sl: "62,800.00",
+                tp1: "66,500.00",
+                tp2: "68,000.00",
+                tp3: "70,000.00",
+                rrr: "1:2.7",
+                winrate: "78%",
+                status: "Active Zone",
+                analysis: " breakout ទម្រង់ Falling Wedge លើ Chart 4H ជាមួយនឹងទំហំ Trading Volume កើនឡើងខ្លាំង។"
+            },
+            {
+                id: 3,
+                pair: "EUR/USD",
+                category: "FOREX",
+                type: "SELL LIMIT",
+                isBuy: false,
+                timeframe: "M30 / H1",
+                entry: "1.08800",
+                sl: "1.09200",
+                tp1: "1.08200",
+                tp2: "1.07800",
+                tp3: "1.07200",
+                rrr: "1:2.5",
+                winrate: "75%",
+                status: "Pending Target",
+                analysis: "តម្លៃកំពុងឡើងទៅបុក Resistance Zone 1.0880 និងប៉ះខ្សែ EMA 200 ជាចំណុច Rejection យ៉ាងល្អ។"
+            }
+        ];
+
+        let currentCategory = 'ALL';
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTime();
+            renderSignals();
+            calculateLot();
+            setInterval(updateTime, 1000);
+        });
+
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('lastUpdatedTime').innerText = now.toLocaleTimeString();
+        }
+
+        function renderSignals() {
+            const container = document.getElementById('signalsContainer');
+            container.innerHTML = '';
+
+            const filteredData = currentCategory === 'ALL' 
+                ? signalsData 
+                : signalsData.filter(item => item.category === currentCategory);
+
+            if(filteredData.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-slate-500">
+                        <i class="fa-solid fa-inbox text-4xl mb-3 block"></i>
+                        មិនទាន់មាន Signal សម្រាប់ប្រភេទនេះនៅឡើយទេ
+                    </div>
+                `;
+                return;
+            }
+
+            filteredData.forEach(sig => {
+                const actionColor = sig.isBuy ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-rose-400 bg-rose-500/10 border-rose-500/30';
+                const badgeColor = sig.isBuy ? 'bg-emerald-500 text-slate-950' : 'bg-rose-500 text-white';
+                const cardGlow = sig.isBuy ? 'glow-green' : 'glow-red';
+
+                const cardHTML = `
+                    <div class="bg-cardBg border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition duration-300 flex flex-col justify-between ${cardGlow}">
+                        <div>
+                            <!-- Header -->
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="text-xl font-bold text-white">${sig.pair}</h3>
+                                        <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">${sig.timeframe}</span>
+                                    </div>
+                                    <p class="text-xs text-slate-400 mt-1">Win Rate រំពឹងទុក: <span class="text-amber-400 font-semibold">${sig.winrate}</span></p>
+                                </div>
+                                <span class="px-3 py-1 rounded-lg text-xs font-bold border ${actionColor}">
+                                    ${sig.type}
+                                </span>
+                            </div>
+
+                            <!-- Levels Details -->
+                            <div class="space-y-2 bg-slate-900/60 p-3.5 rounded-xl border border-slate-800 text-xs my-4">
+                                <div class="flex justify-between items-center py-1 border-b border-slate-800">
+                                    <span class="text-slate-400">Entry Price (តម្លៃចូល):</span>
+                                    <span class="font-bold text-white text-sm">${sig.entry}</span>
+                                </div>
+                                <div class="flex justify-between items-center py-1 border-b border-slate-800">
+                                    <span class="text-rose-400 font-medium"><i class="fa-solid fa-shield-halved mr-1"></i> Stop Loss (SL):</span>
+                                    <span class="font-bold text-rose-400">${sig.sl}</span>
+                                </div>
+                                <div class="flex justify-between items-center py-1">
+                                    <span class="text-emerald-400 font-medium"><i class="fa-solid fa-trophy mr-1"></i> Take Profit 1 (TP1):</span>
+                                    <span class="font-bold text-emerald-400">${sig.tp1}</span>
+                                </div>
+                                <div class="flex justify-between items-center py-1">
+                                    <span class="text-emerald-400 font-medium"><i class="fa-solid fa-trophy mr-1"></i> Take Profit 2 (TP2):</span>
+                                    <span class="font-bold text-emerald-400">${sig.tp2}</span>
+                                </div>
+                            </div>
+
+                            <!-- Market Analysis Note -->
+                            <div class="text-xs text-slate-400 bg-slate-900/30 p-3 rounded-lg border border-slate-800/80 mb-4">
+                                <p class="line-clamp-2"><strong class="text-slate-300">ការវិភាគ៖</strong> ${sig.analysis}</p>
+                            </div>
+                        </div>
+
+                        <!-- Footer RRR -->
+                        <div class="pt-3 border-t border-slate-800 flex justify-between items-center text-xs">
+                            <span class="text-slate-400">Risk/Reward Ratio: <strong class="text-blue-400">${sig.rrr}</strong></span>
+                            <span class="text-emerald-400 flex items-center gap-1 font-medium">
+                                <i class="fa-solid fa-circle-check text-[10px]"></i> ${sig.status}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHTML;
+            });
+        }
+
+        function filterSignals(category) {
+            currentCategory = category;
+            
+            // Update Tab Active Styles
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if(btn.dataset.category === category) {
+                    btn.className = "tab-btn px-4 py-2 rounded-xl text-sm font-semibold transition bg-blue-600 text-white shadow-lg shadow-blue-600/30";
+                } else {
+                    btn.className = "tab-btn px-4 py-2 rounded-xl text-sm font-semibold transition bg-slate-800 text-slate-400 hover:bg-slate-700";
+                }
+            });
+
+            renderSignals();
+        }
+
+        function calculateLot() {
+            const capital = parseFloat(document.getElementById('calcCapital').value) || 0;
+            const riskPercent = parseFloat(document.getElementById('calcRisk').value) || 0;
+
+            const riskAmount = capital * (riskPercent / 100);
+            
+            // Standard Lot Calculation for XAU/USD assuming 100 pips ($10) SL
+            // $10 risk on 0.01 lot = $10 loss for a 100 pips move
+            const safeLot = (riskAmount / 1000).toFixed(2);
+
+            document.getElementById('riskAmountDisplay').innerText = `$${riskAmount.toFixed(2)}`;
+            document.getElementById('safeLotDisplay').innerText = `${Math.max(safeLot, 0.01)} Lot`;
+        }
+
+        function refreshSignals() {
+            const icon = document.getElementById('refreshIcon');
+            icon.classList.add('fa-spin');
+            setTimeout(() => {
+                icon.classList.remove('fa-spin');
+                updateTime();
+            }, 800);
+        }
+    </script>
+</body>
+</html>
